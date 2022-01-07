@@ -93,6 +93,12 @@ def set_calibration():
         c2w = calibration_photo(rvecs[-1],tvecs[-1],w1,h1)
         c2w_metrix.append(c2w)
 
+    if os.path.exists('./logs/c2w_metrix.pkl'):
+        os.system('mkdir logs')
+    with open('./logs/c2w_metrix.pkl', 'wb') as f: 
+        pickle.dump(c2w_metrix, f)
+
     print('finish')
+
     with open('./logs/c2w_metrix.pkl', 'wb') as f: 
         pickle.dump(c2w_metrix, f)
