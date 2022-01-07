@@ -81,7 +81,6 @@ def set_calibration():
     args = arse_config()
     print(args.folder)
     root = os.path.join(args.folder,'*.png') # 标定图像保存路径
-    # photos_path = glob.glob(root = os.path.join('/root/vmip/myProject/nerf/camera/Calibration_ZhangZhengyou_Method/pic/RGB_camera_calib_img','/*.png'))
     photos_path = glob.glob(root)
     w1 = args.config[0]
     h1 = args.config[1] 

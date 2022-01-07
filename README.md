@@ -1,19 +1,19 @@
 # how to run
 ```
-python newcalib.py
+python run.py
 ```
 
 
 ## try your photos
 ```
-python newcalib.py --file
+python run.py --file
 ```
 
 
 
 ## change the numbers of chessboard grid
 ```
-python newcalib.py --[长,宽]
+python run.py --[长,宽]
 ```
 -调整棋盘格数,[ ]内输入对应格子数量
 
