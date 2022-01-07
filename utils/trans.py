@@ -1,14 +1,11 @@
 import json
 import numpy as np
+import os
 import pickle
 
 def json_write():
-  data = open('./logs/c2w_metrix.pkl','rb')
-  data = pickle.load(data)
-  print(type(data))
-  npdata = np.array(data)
-  print(type(npdata))
-  print(npdata.shape)
-  data = npdata.tolist()
+  data = open(os.path.join(os.getcwd(),'log/c2w_metrix.pkl'),'rb')
+  npdata = np.array(pickle.load(data))
   with open('./jsontrans.json', 'w') as  f:
-      json.dump(data,f)     
+      json.dump(npdata.tolist(),f)     
+  print('.json has been written')

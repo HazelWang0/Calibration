@@ -24,9 +24,6 @@ def draw(img, corners, imgpts):
 def calibration_photo(rvecs,tvecs,w1,h1):
     tvecs = np.array(tvecs).reshape(3,1)
     rvecs = np.array(rvecs).reshape(3,1)
-    # print('mtx:',mtx)
-    # print('rvecs:',rvecs)
-    # print('tvecs:',tvecs)
     objp = np.zeros((w1*h1,3), np.float32)
     objp[:,:2] = np.mgrid[0:w1,0:h1].T.reshape(-1,2)
     objp = objp*18.1  # 18.1 mm
@@ -85,20 +82,17 @@ def set_calibration():
     w1 = args.config[0]
     h1 = args.config[1] 
     c2w_metrix = []
-    print('正在计算')
+    print('calibrating')
     for photo_path in photos_path:
-        ret = []
-        mtx = []
+        # mtx相机内参，dist相机畸变
         ret,mtx,dist,rvecs,tvecs = get_inner_mtx(photo_path,w1,h1)
+
         c2w = calibration_photo(rvecs[-1],tvecs[-1],w1,h1)
         c2w_metrix.append(c2w)
 
-    if os.path.exists('./logs/c2w_metrix.pkl'):
-        os.system('mkdir logs')
-    with open('./logs/c2w_metrix.pkl', 'wb') as f: 
-        pickle.dump(c2w_metrix, f)
+    os.makedirs(os.path.join(os.getcwd(),'log'),exist_ok=True)
+    f = os.path.join(os.getcwd(),'log','c2w_metrix.pkl')
+    with open(f, 'wb') as file:
+        pickle.dump(c2w_metrix, file)
+    print('finish calibrating')
 
-    print('finish')
-
-    with open('./logs/c2w_metrix.pkl', 'wb') as f: 
-        pickle.dump(c2w_metrix, f)
