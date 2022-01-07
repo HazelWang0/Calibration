@@ -1,3 +1,4 @@
 *.pkl
 pic/*
 *.json
+*.pyc
