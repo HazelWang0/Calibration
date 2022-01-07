@@ -1,14 +1,14 @@
-
-
 # how to run
 ```
 python newcalib.py
 ```
 
+
 ## try your photos
 ```
 python newcalib.py --file
 ```
+
 
 
 ## change the numbers of chessboard grid
