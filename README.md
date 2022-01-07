@@ -1,20 +1,14 @@
-# how to run
+相机校准
+# how to run 
 ```
-python run.py
-```
-
-
-## try your photos
-```
-python run.py --file
+python run.py --[图片所在路径]
 ```
 
 
 
-## change the numbers of chessboard grid
+>## to change the numbers of chessboard grid
 ```
-python run.py --[长,宽]
+python run.py --[对应棋盘长、宽的格子数量]
 ```
--调整棋盘格数,[ ]内输入对应格子数量
 
--默认棋盘格规格为12乘9，格点长度0.02m，由于opencv输入参数为内角点个数，所以默认输入参数为11乘8
+默认棋盘格规格为12乘9，格点长度0.02m，由于opencv输入参数为内角点个数，所以默认输入参数为11乘8
