@@ -1,5 +1,4 @@
 # how to run
-<<<<<<< HEAD
 ```
 python newcalib.py
 ```
