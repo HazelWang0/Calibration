@@ -6,6 +6,7 @@ import glob
 import pickle
 import math
 from .utils import arse_config
+from .trans import read_pic, read_pic
 
 
 objpoints=[]
@@ -74,9 +75,8 @@ def get_inner_mtx(photo_path,w1,h1):
 
 
 def set_calibration():
-    print(1)
     args = arse_config()
-    print(args.folder)
+    read_pic(args.folder)
     root = os.path.join(args.folder,'*.png') # 标定图像保存路径
     photos_path = glob.glob(root)
     w1 = args.config[0]
