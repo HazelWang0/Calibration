@@ -21,7 +21,7 @@ def draw(img, corners, imgpts):
     return img
 
 
-# 标定图像
+# 获得像素坐标
 def calibration_photo(rvecs,tvecs,w1,h1):
     tvecs = np.array(tvecs).reshape(3,1)
     rvecs = np.array(rvecs).reshape(3,1)
@@ -45,6 +45,29 @@ def calibration_photo(rvecs,tvecs,w1,h1):
     c2w_metrix=np.hstack((list2,yi.T))
     print('c2w_metrix:',c2w_metrix)
     return(c2w_metrix)
+
+# # 计算位姿
+# def calibration(ret,mtx,dist,rvecs,tvecs,corners,w1,h1):
+#     tvecs = np.array(tvecs).reshape(3,1)
+#     rvecs = np.array(rvecs).reshape(3,1)
+#     objp = np.zeros((w1*h1,3), np.float32)
+#     objp[:,:2] = np.mgrid[0:w1,0:h1].T.reshape(-1,2)
+#     objp = objp*18.1  # 18.1 mm
+
+#     list1 = rvecs
+#     in_site=np.mat(list1)
+#     in_rr=in_site/180*math.pi
+
+#     # 找到图像平面点角点坐标
+    
+#     ret =True
+
+#     if ret:
+#         _,R,T=cv2.solvePnP(objp,corners,mtx,dist)
+#         print('所求结果：')
+#         print("旋转向量",R)
+#         print("平移向量",T)
+
 
 
 def get_inner_mtx(photo_path,w1,h1):
@@ -71,7 +94,7 @@ def get_inner_mtx(photo_path,w1,h1):
     #标定
     ret, mtx, dist, rvecs, tvecs = \
         cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-    return(ret,mtx,dist,rvecs,tvecs)
+    return(ret,mtx,dist,rvecs,tvecs,corners)
 
 
 def set_calibration():
@@ -85,14 +108,15 @@ def set_calibration():
     print('calibrating')
     for photo_path in photos_path:
         # mtx相机内参，dist相机畸变
-        ret,mtx,dist,rvecs,tvecs = get_inner_mtx(photo_path,w1,h1)
-
+        ret,mtx,dist,rvecs,tvecs,corners = get_inner_mtx(photo_path,w1,h1)
         c2w = calibration_photo(rvecs[-1],tvecs[-1],w1,h1)
+        # c2w = calibration(ret,mtx,dist,rvecs[-1],tvecs[-1],corners,w1,h1)
         c2w_metrix.append(c2w)
 
     os.makedirs(os.path.join(os.getcwd(),'log'),exist_ok=True)
     f = os.path.join(os.getcwd(),'log','c2w_metrix.pkl')
+    log = {'c2w_metrix':c2w_metrix,'ret':ret,'rvecs':rvecs}
     with open(f, 'wb') as file:
-        pickle.dump(c2w_metrix, file)
+        pickle.dump(log, file)
     print('finish calibrating')
 
