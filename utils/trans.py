@@ -21,13 +21,13 @@ def read_pic(root):
     os.rename(pname,nname)
     i+=1
 
-def json_write_llff(c2w_metrix,h,w,f):
-  
+def json_write_llff(c2w_metrix,f):
+  args = arse_config()
   print(type(c2w_metrix)) # list
   print(c2w_metrix[0])
   print(len(c2w_metrix))
-  f = f
-  hwf = np.array([h,w,f]).reshape(3,1)
+  hw = args.inter_corner_shape
+  hwf = np.array([hw[1],hw[0],f]).reshape(3,1)
   # print("hwf:",hwf)
   # print((hwf).shape)
   c2w_metrix = np.array(c2w_metrix)

@@ -40,17 +40,18 @@ def show(c2w,cp):
     #             alpha=0.6
     #            ) 
     # # 散点图
-    dots = np.array(cp).astype(int) # list,在画图前必须转为int类型
-    print(type(cp))
-    print(dots[0],dots[1],sep=';')
+    dots = np.array(c2w).astype(int) # list,在画图前必须转为int类型
     print(dots.shape[0])
     for i in range(dots.shape[0]):
         dot = dots[i]
         print('dot:',dot)
         print('i:',i)
+        print('dot[0][0]:',dot[0][0])
+        print('dot[1]:',dot[1][0])
+
 
         ax.scatter(dot[0],dot[1],dot[2],c='g', marker='o')
-        ax.text(dot[0][0],dot[1][0],dot[2][0],i,fontsize=12, color = "r", style = "italic")
+        ax.text(dot[0][3],dot[1][3],dot[2][3],i,fontsize=12, color = "r", style = "italic")
     # --------------------------------  --------------------------------
     # 设置坐标轴标题和刻度
     ax.set(xlabel='X',
@@ -59,9 +60,9 @@ def show(c2w,cp):
         xlim=(0, 9),
         ylim=(0, 9),
         zlim=(0, 9),
-        xticks=np.arange(-400, 400, 80),
-        yticks=np.arange(-400, 400, 80),
-        zticks=np.arange(-800, 800, 160)
+        xticks=np.arange(-200, 400, 60),
+        yticks=np.arange(-200, 400, 60),
+        zticks=np.arange(-600, 0, 60)
         )
 
     # 调整视角
@@ -72,7 +73,7 @@ def show(c2w,cp):
     # 显示图形
     plt.show()
 
-def showsurface(c2w,cp):
+def showsurface(c2w,cp,rvecs,tvecs):
     fig = plt.figure(figsize=(5, 5),
                     facecolor='whitesmoke'
                     )
@@ -80,32 +81,44 @@ def showsurface(c2w,cp):
     ax = fig.gca(fc='whitesmoke',
                 projection='3d' 
                 )
+    c2w = np.array(c2w)
+    cp = np.array(cp)
+    print('shape c2w:',c2w.shape)
+    print('shape cp:',cp.shape)
+    print('c2w[0]:',c2w[0])
+    print('cp[0]:',cp[0])
+    for i in range(cp.shape[0]):
+        print('i:',i)
+        print('cp[i][0]:',cp[i][0])
+        print('cp.shape[0]:',cp.shape[0] )
+        x,y,z = np.meshgrid(list(cp[i][0]),list(cp[i][1]),list(cp[i][2]))
+        # ax.scatter(x,y,z,c='g', marker='o')
 
-    # x1 = np.linspace(0,2,40)
-    # y1 = np.linspace(0,2,40)
-    x = c2w[0]
-    X, Y = np.meshgrid(x, y)
-    z1 =X*2,
-    
-    ax.plot_surface(x1, y1, z1, rstride=1, cstride=1, cmap='rainbow')
+        print('x:',x)
+        print('y:',y)
+        print('z:',z)
+        print('c2w[i]:',i)
+        # u = c2w[i][0]
+        # v = c2w[i][1]
+        # w = c2w[i][2]
+        # u, v, w = np.meshgrid(np.dot(cp[i],c2w[i]))
+        # u = np.dot(cp[i],c2w[i])[0]
+        # print('u:',u)
+        print('(np.dot(cp[i],c2w[i]):',(cp[i]*rvecs[i])+tvecs[i])
+        w2c = (cp[i]*rvecs[i])+tvecs[i]
+        u = w2c*cp[i][0][0]
+        v = w2c*cp[i][1][0]
+        w = w2c*cp[i][2][0]
+        print('w2c*cp[i]：',w2c*cp[i] )
+        print('type:',type(w2c*cp[i]))
+        print('w2c*cp[i][0][0]：',w2c*cp[i][0][0] )
+
+        # ax.scatter(u, v, w,c='g', marker='o')
+
+        ax.quiver(x, y, z, u, v, w, length=0.1, normalize=True)
     
     plt.show()
  
-
-def draw(img, corners, imgpts):
-    # img  = np.trunc(10*img)
-    img = img.astype(int)
-    img = np.mat(img)
-    corners = corners.astype(int)
-    imgpts = imgpts.astype(int)
-    print(type(corners))
-    print(type(imgpts))
-    corner = tuple(corners[0].ravel())
-    img = cv2.line(img, corner, tuple(imgpts[0].ravel()), (255, 0, 0), 5)
-    img = cv2.line(img, corner, tuple(imgpts[1].ravel()), (0, 255, 0), 5)
-    img = cv2.line(img, corner, tuple(imgpts[2].ravel()), (0, 0, 255), 5)
-    return img
-
 
 
 
@@ -140,7 +153,7 @@ def calibration_photo(photo_path,mtx,dist):
         #获得的旋转矩阵是向量，是3×1的矩阵，想要还原回3×3的矩阵，需要罗德里格斯变换Rodrigues，
         
         rotation_m, _ = cv2.Rodrigues(rvec)#罗德里格斯变换
-        print(rotation_m)
+        print("rotation_matrix:",rotation_m)
         print('旋转矩阵是：\n', rvec)
         print('平移矩阵是:\n', tvec)
         rotation_t = np.hstack([rotation_m,tvec])
@@ -151,9 +164,21 @@ def calibration_photo(photo_path,mtx,dist):
         # img = draw(image, corners, imgpts)
         # cv2.imshow('img', img)
         cameraPosition = -np.matrix(rotation_m).T * np.matrix(tvec)
+        # c2w = np.linalg.inv(rotation_t_Homogeneous_matrix)
+        c2w = np.linalg.inv(rotation_t_Homogeneous_matrix)
+        print('c2w',c2w)
         print('cp',cameraPosition)
-        return rotation_t_Homogeneous_matrix,cameraPosition # 返回旋转矩阵和平移矩阵组成的齐次矩阵
+        return c2w,cameraPosition # 返回旋转矩阵和平移矩阵组成的齐次矩阵
 
+def get_pose(c2w,w1,h1,focal):
+    poses = c2w[:, :3, :4].transpose([1,2,0])
+    hwf = np.array([h1,w1,focal]).reshape([3,1])
+    poses = np.concatenate([poses, np.tile(hwf[..., np.newaxis], [1,1,poses.shape[-1]])], 1)
+    
+    # must switch to [-u, r, -t] from [r, -u, t], NOT [r, u, -t]
+    poses = np.concatenate([poses[:, 1:2, :], poses[:, 0:1, :], -poses[:, 2:3, :], poses[:, 3:4, :], poses[:, 4:5, :]], 1)
+    print('poses:',poses)
+    return poses
 
 
 def get_inner_mtx(photo_path,w1,h1):
@@ -179,11 +204,23 @@ def get_inner_mtx(photo_path,w1,h1):
     #标定
     ret, mtx, dist, rvecs, tvecs = \
         cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+    print('rvecs:',rvecs[0])
+    print('tvecs:',tvecs[0])
 
     print('mtx:',mtx)
     focal = mtx[0:1,0:1]
     print('focal:',focal)
-    return(ret,mtx,dist,rvecs,tvecs,corners,focal)
+    camera_angle_x = np.arctan((focal/.5*w1))/0.5
+    print('camera_angle_x:',camera_angle_x)
+    return(ret,mtx,dist,rvecs,tvecs,corners,focal,camera_angle_x,h,w)
+
+def saveBlender(c2w_metrix,camera_angle_x_metrix,rvecs):
+    os.makedirs(os.path.join(os.getcwd(),'log'),exist_ok=True)
+    f = os.path.join(os.getcwd(),'log','c2w_metrix.pkl')
+    log = {'c2w_metrix':c2w_metrix,'camera_angle_x':camera_angle_x_metrix,'rvecs':rvecs}
+    with open(f, 'wb') as file:
+        pickle.dump(log, file)
+    print('finish calibrating')
 
 
 def set_calibration():
@@ -196,22 +233,26 @@ def set_calibration():
     h1 = args.config[1] 
     c2w_metrix = []
     cp_mertix = []
+    camera_angle_x_metrix = []
     print('calibrating')
     for photo_path in photos_path:
         # ret相机？？ mtx相机内参，dist相机畸变,rvecs旋转向量，tvecs平移向量,focal焦距
-        ret,mtx,dist,rvecs,tvecs,corners,focal = get_inner_mtx(photo_path,w1,h1)        
+        ret,mtx,dist,rvecs,tvecs,corners,focal,camera_angle_x,h,w = get_inner_mtx(photo_path,w1,h1)        
         c2w,cp = calibration_photo(photo_path,mtx,dist)
+        # pose = get_pose(c2w,cp,w1,h1,focal)
         c2w_metrix.append(c2w)
         cp_mertix.append(cp)
-    # show(c2w_metrix,cp_mertix)
-        
+        camera_angle_x_metrix.append(camera_angle_x)
+        # pose_metrix.append(pose)
+    showsurface(c2w_metrix,cp_mertix,rvecs,tvecs)
+    
+    print('camera_angle_x_metrix:',camera_angle_x_metrix)
+
+    return c2w_metrix,h,w
+    
+    # saveBlender(c2w_metrix,camera_angle_x_metrix,rvecs)
 
 
 
-    # os.makedirs(os.path.join(os.getcwd(),'log'),exist_ok=True)
-    # f = os.path.join(os.getcwd(),'log','c2w_metrix.pkl')
-    # log = {'c2w_metrix':c2w_metrix,'ret':ret,'rvecs':rvecs}
-    # with open(f, 'wb') as file:
-    #     pickle.dump(log, file)
-    # print('finish calibrating')
+
 

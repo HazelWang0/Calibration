@@ -4,15 +4,9 @@ import os
 import sys
 import glob
 import pickle
-# import math
+import math
 from .utils import arse_config
 from .trans import read_pic, read_pic
-
-import numpy as np
-import matplotlib as mpl
-from matplotlib import cm
-from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 
 objpoints=[]
@@ -121,64 +115,29 @@ def showsurface(c2w,cp,rvecs,tvecs):
  
 
 
-
 # 获得像素坐标
-def calibration_photo(photo_path,mtx,dist):
-    # 设置要标定的角点个数
-    x_nums = 11  # x方向上的角点个数
-    y_nums = 8
-    # 设置(生成)标定图在世界坐标中的坐标
-    world_point = np.zeros((x_nums * y_nums, 3), np.float32)  # 生成x_nums*y_nums个坐标，每个坐标包含x,y,z三个元素
-    world_point[:, :2] = 15 * np.mgrid[:x_nums, :y_nums].T.reshape(-1, 2)  # mgrid[]生成包含两个二维矩阵的矩阵，每个矩阵都有x_nums列,y_nums行
-    # print('world point:',world_point)
-    # .T矩阵的转置
-    # reshape()重新规划矩阵，但不改变矩阵元素
-    # 设置世界坐标的坐标
-    axis = 15* np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
-    # 设置角点查找限制
-    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+def calibration_photo(rvecs,tvecs,w1,h1):
+    tvecs = np.array(tvecs).reshape(3,1)
+    rvecs = np.array(rvecs).reshape(3,1)
+    objp = np.zeros((w1*h1,3), np.float32)
+    objp[:,:2] = np.mgrid[0:w1,0:h1].T.reshape(-1,2)
+    objp = objp*18.1  # 18.1 mm
 
-    image = cv2.imread(photo_path)
+    list1 = rvecs
+    in_site=np.mat(list1)
+    in_rr=in_site/180*math.pi
 
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    # 查找角点
-    ok, corners = cv2.findChessboardCorners(gray, (x_nums, y_nums), )
-    # print(ok)
-    if ok:
-        # 获取更精确的角点位置
-        exact_corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+    #旋转向量转化为旋转矩阵
+    in_r=cv2.Rodrigues(in_rr,jacobian=0)[0]
 
-        # 获取外参
-        _, rvec, tvec, inliers = cv2.solvePnPRansac(world_point, exact_corners, mtx, dist)
-        #获得的旋转矩阵是向量，是3×1的矩阵，想要还原回3×3的矩阵，需要罗德里格斯变换Rodrigues，
-        
-        rotation_m, _ = cv2.Rodrigues(rvec)#罗德里格斯变换
-        print(rotation_m)
-        print('旋转矩阵是：\n', rvec)
-        print('平移矩阵是:\n', tvec)
-        rotation_t = np.hstack([rotation_m,tvec])
-        rotation_t_Homogeneous_matrix = np.vstack([rotation_t,np.array([[0, 0, 0, 1]])])
-        print('w2c',rotation_t_Homogeneous_matrix)
-        imgpts, jac = cv2.projectPoints(axis, rvec, tvec, mtx, dist)
-        # # 可视化角点
-        # img = draw(image, corners, imgpts)
-        # cv2.imshow('img', img)
-        cameraPosition = -np.matrix(rotation_m).T * np.matrix(tvec)
-        # c2w = np.linalg.inv(rotation_t_Homogeneous_matrix)
-        c2w = np.linalg.inv(rotation_t_Homogeneous_matrix)
-        print('c2w',c2w)
-        print('cp',cameraPosition)
-        return c2w,cameraPosition # 返回旋转矩阵和平移矩阵组成的齐次矩阵
-
-def get_pose(c2w,cp,w1,h1,focal):
-    poses = c2w[:, :3, :4].transpose([1,2,0])
-    hwf = np.array([h1,w1,focal]).reshape([3,1])
-    poses = np.concatenate([poses, np.tile(hwf[..., np.newaxis], [1,1,poses.shape[-1]])], 1)
-    
-    # must switch to [-u, r, -t] from [r, -u, t], NOT [r, u, -t]
-    poses = np.concatenate([poses[:, 1:2, :], poses[:, 0:1, :], -poses[:, 2:3, :], poses[:, 3:4, :], poses[:, 4:5, :]], 1)
-    print('poses:',poses)
-    return poses
+    R=in_r
+    t=tvecs
+    bottom = np.array([0,0,0,1.]).reshape([1,4])
+    w2c_metrix=np.concatenate([np.concatenate([R, t], 1), bottom], 0)
+    print('w2c_metrix:',w2c_metrix)
+    c2w_metrix = np.linalg.inv(w2c_metrix)
+    print('c2w_metrix:',c2w_metrix)
+    return(c2w_metrix)
 
 
 def get_inner_mtx(photo_path,w1,h1):
@@ -191,6 +150,7 @@ def get_inner_mtx(photo_path,w1,h1):
     # print(img.shape)
     #获取画面中心点
     #图像的长宽(480, 640, 3)
+    print()
     h, w = img.shape[0], img.shape[1]
     gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     u, v = img.shape[:2]
@@ -204,25 +164,10 @@ def get_inner_mtx(photo_path,w1,h1):
     #标定
     ret, mtx, dist, rvecs, tvecs = \
         cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
-
-    print('mtx:',mtx)
-    focal = mtx[0:1,0:1]
-    print('focal:',focal)
-    camera_angle_x = np.arctan((focal/.5*w1))/0.5
-    print('camera_angle_x:',camera_angle_x)
-    return(ret,mtx,dist,rvecs,tvecs,corners,focal,camera_angle_x)
-
-def save(c2w_metrix,camera_angle_x_metrix,rvecs):
-    os.makedirs(os.path.join(os.getcwd(),'log'),exist_ok=True)
-    f = os.path.join(os.getcwd(),'log','c2w_metrix.pkl')
-    log = {'c2w_metrix':c2w_metrix,'camera_angle_x':camera_angle_x_metrix,'rvecs':rvecs}
-    with open(f, 'wb') as file:
-        pickle.dump(log, file)
-    print('finish calibrating')
+    return(ret,mtx,dist,rvecs,tvecs,corners,h,w)
 
 
 def set_calibration():
-    
     args = arse_config()
     read_pic(args.folder)
     root = os.path.join(args.folder,'*.png') # 标定图像保存路径
@@ -230,25 +175,17 @@ def set_calibration():
     w1 = args.config[0]
     h1 = args.config[1] 
     c2w_metrix = []
-    cp_mertix = []
-    camera_angle_x_metrix = []
     print('calibrating')
     for photo_path in photos_path:
-        # ret相机？？ mtx相机内参，dist相机畸变,rvecs旋转向量，tvecs平移向量,focal焦距
-        ret,mtx,dist,rvecs,tvecs,corners,focal,camera_angle_x = get_inner_mtx(photo_path,w1,h1)        
-        c2w,cp = calibration_photo(photo_path,mtx,dist)
-        # pose = get_pose(c2w,cp,w1,h1,focal)
+        # mtx相机内参，dist相机畸变
+        ret,mtx,dist,rvecs,tvecs,corners,h,w= get_inner_mtx(photo_path,w1,h1)
+        c2w = calibration_photo(rvecs[-1],tvecs[-1],w1,h1)
+        # c2w = calibration(ret,mtx,dist,rvecs[-1],tvecs[-1],corners,w1,h1)
         c2w_metrix.append(c2w)
-        cp_mertix.append(cp)
-        camera_angle_x_metrix.append(camera_angle_x)
-        # pose_metrix.append(pose)
-    showsurface(c2w_metrix,cp_mertix,rvecs,tvecs)
-    
-    print('camera_angle_x_metrix:',camera_angle_x_metrix)
-    
-    save(c2w_metrix,camera_angle_x_metrix,rvecs)
 
 
-
-
+    os.makedirs(os.path.join(os.getcwd(),'log'),exist_ok=True)
+    f = os.path.join(os.getcwd(),'log','c2w_metrix.pkl')
+    log = {'c2w_metrix':c2w_metrix,'ret':ret,'rvecs':rvecs,'h:':h,'w:':w}
+    return c2w_metrix,h,w
 
